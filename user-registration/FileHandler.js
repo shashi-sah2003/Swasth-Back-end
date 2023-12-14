@@ -1,6 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const db = require('./db.js');
+
 
 const app = express();
 
@@ -24,6 +26,22 @@ app.post('/upload', upload.single('file'), (req,res,next) => {
         error.httpStatusCode = 400;
         return next(error);
     }
+
+    const fileData = {
+        Medical_record_id: req.body.Medical_record_id,
+        File_name: file.originalname,
+        File_location: file.path,
+        Status: 'Active',
+        Created_on: new Date().toISOString.slice(0,19).replace('T',' '),
+        Created_by: 'Your created by value'
+    };
+
+    const query = 'INSERT INTO record_files SET ?';
+    db.query(query, fileData, (error, results, fields) => {
+        if (error) throw error;
+        res.send("File has been uploaded and data has been stored to record_file table.");
+    });
+
     res.send(file);
 });
 
