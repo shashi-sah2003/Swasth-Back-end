@@ -16,19 +16,19 @@ app.get('/home', (req, res) => {
   
 //Registration Route
 app.post('/register',async (req,res) =>{
-    const {username,email,password} = req.body;
+    const {username,email,password, phoneNumber} = req.body;
 
     //Hash the password before storing it
     const hashedPassword = await bcrypt.hash(password,10);
 
-    const sql = 'INSERT INTO registration (username, email, password) VALUES (?,?,?)';
-    db.query(sql,[username,email,hashedPassword],(err,result) =>{
+    const sql = 'INSERT INTO registration (username, email, password, Phone_Number) VALUES (?,?,?,?)';
+    db.query(sql,[username,email,hashedPassword, phoneNumber],(err,result) =>{
         if(err){
             console.error('Error registering user: ', err);
-            res.status(500).json({error: 'An error occured'});
+            return res.status(500).json({error: 'An error occured'});
         }
         else{
-            res.status(201).json({messsage : "An user registered successfully"});
+            return res.status(200).json({messsage : "An user registered successfully"});
         }
     });
 });
@@ -72,7 +72,7 @@ app.post('/login',async (req,res) =>{
         const secretKey = crypto.randomBytes(32).toString('hex');
         const token = jwt.sign({userId: user.id}, secretKey, {expiresIn: '1h'});
 
-        res.status(200).json({ success: true, token });
+        return res.status(200).json({ success: true, token: token });
     })
 })
 
