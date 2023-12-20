@@ -8,11 +8,9 @@ const db = require('./db');
 
 const app = express();
 
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-// Define a root route
-app.get('/home', (req, res) => {
-    res.send('Welcome to the user registration API');
-  });
   
 //Registration Route
 app.post('/register',async (req,res) =>{
