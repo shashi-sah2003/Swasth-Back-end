@@ -7,6 +7,7 @@ const FetchFile = require('./FetchFile')
 const saveData = require('./saveData');
 const user = require('./user');
 const otpGenerator = require('./OTP-generator');
+const settings= require('./settings');
 
 const app = express();
 const port = 3000;
@@ -25,7 +26,7 @@ app.use('/',FetchFile);
 app.use('/', saveData);
 app.use('/', user);
 app.use('/', otpGenerator);
-
+app.use('/',settings);
 
 
 //starting express server
