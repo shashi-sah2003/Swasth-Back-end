@@ -55,7 +55,7 @@ app.post('/login',async (req,res) =>{
             return res.status(500).json({error: "An error occured"});
         }
 
-        if(results.length ===0){
+        if(results.length === 0){
             return res.status(401).json({error : 'Invalid credentials'});
         }
 
@@ -68,7 +68,7 @@ app.post('/login',async (req,res) =>{
         
         //Generate a JWT token for authentication
         const secretKey = crypto.randomBytes(32).toString('hex');
-        const token = jwt.sign({userId: user.id}, secretKey, {expiresIn: '1h'});
+        const token = jwt.sign({userId: user.user_id, phoneNumber: user.Phone_Number, userName: user.username}, secretKey, {expiresIn: '1h'});
 
         return res.status(200).json({ success: true, token: token });
     })
