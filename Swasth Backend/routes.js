@@ -11,16 +11,15 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-  
 //Registration Route
 app.post('/register',async (req,res) =>{
-    const {username,email,password, phoneNumber} = req.body;
+    const {name, email, password, phoneNumber, dateOfBirth} = req.body;
 
     //Hash the password before storing it
     const hashedPassword = await bcrypt.hash(password,10);
 
-    const sql = 'INSERT INTO registration (username, email, password, Phone_Number) VALUES (?,?,?,?)';
-    db.query(sql,[username,email,hashedPassword, phoneNumber],(err,result) =>{
+    const sql = 'INSERT INTO registration (name, email, password, phoneNumber, DateOfBirth) VALUES (?,?,?,?,?)';
+    db.query(sql, [name, email, hashedPassword, phoneNumber, dateOfBirth],(err,result) =>{
         if(err){
             console.error('Error registering user: ', err);
             return res.status(500).json({error: 'An error occured'});
@@ -47,7 +46,6 @@ app.post('/login',async (req,res) =>{
 
     const {email, password} = req.body;
 
-
     const sql = ' SELECT * from registration WHERE email = ?';
     db.query(sql,[email], async(err,results) =>{
         if(err){
@@ -68,9 +66,9 @@ app.post('/login',async (req,res) =>{
         
         //Generate a JWT token for authentication
         const secretKey = crypto.randomBytes(32).toString('hex');
-        const token = jwt.sign({userId: user.user_id, phoneNumber: user.Phone_Number, userName: user.username}, secretKey, {expiresIn: '1h'});
+        const token = jwt.sign({userId: user.userId, phoneNumber: user.phoneNumber, email: user.email}, secretKey, {expiresIn: '1h'});
 
-        return res.status(200).json({ success: true, token: token });
+        return res.status(200).json({success: true, token: token});
     })
 })
 

@@ -16,7 +16,7 @@ const storage = multer.diskStorage({
     filename: function (req, file, cb) {
       const username = req.body.username;
   
-      const UserId = "SELECT user_id FROM registration WHERE email = ?";
+      const UserId = "SELECT userId FROM registration WHERE email = ?";
       db.query(UserId, [username], async (err, result) => {
         if (err) {
           console.error(err);
@@ -29,7 +29,7 @@ const storage = multer.diskStorage({
           return cb(error);
         }
   
-        const userid = result[0].user_id;
+        const userid = result[0].userId;
         const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
         // Extract the file extension from the original filename
