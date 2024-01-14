@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const otpGenerator = require('otp-generator');
 const twilio = require('twilio');
-const db = require('./db')
+const db = require('../config/db')
 
 const app = express();
 

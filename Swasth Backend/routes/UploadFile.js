@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const db = require('./db.js');
+const db = require('../config/db');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 

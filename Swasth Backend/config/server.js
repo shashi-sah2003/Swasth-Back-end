@@ -1,13 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const db = require('./db');
-const routes = require('./routes');
-const UploadFile = require('./UploadFile');
-const FetchFile = require('./FetchFile')
-const saveData = require('./saveData');
-const user = require('./user');
-const otpGenerator = require('./OTP-generator');
-const settings= require('./settings');
+const register = require('../routes/login');
+const login = require('../routes/login')
+const UploadFile = require('../routes/UploadFile');
+const FetchFile = require('../routes/FetchFile');
+const otpGenerator = require('../routes/OTP-generator');
+const settings = require('../routes/settings');
 
 const app = express();
 const port = 3000;
@@ -20,13 +18,12 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Include routes
-app.use('/', routes);
+app.use('/', register);
+app.use('/', login);
 app.use('/', UploadFile);
 app.use('/',FetchFile);
-app.use('/', saveData);
-app.use('/', user);
 app.use('/', otpGenerator);
-app.use('/',settings);
+app.use('/', settings);
 
 
 //starting express server
