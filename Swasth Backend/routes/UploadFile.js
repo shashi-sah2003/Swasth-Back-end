@@ -14,31 +14,20 @@ const storage = multer.diskStorage({
       cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
-      const username = req.body.username;
+      //const username = req.body.username;
+      const userId = req.body.userId;
+      
   
-      const UserId = "SELECT userId FROM registration WHERE email = ?";
-      db.query(UserId, [username], async (err, result) => {
-        if (err) {
-          console.error(err);
-          return cb(err);
-        }
-  
-        if (result.length === 0) {
-          const error = new Error("User not found");
-          error.statusCode = 404;
-          return cb(error);
-        }
-  
-        const userid = result[0].userId;
-        const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      const userid = userId;
+      const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-        // Extract the file extension from the original filename
-        const originalFilename = file.originalname;
-        const fileExtension = originalFilename.slice(((originalFilename.lastIndexOf(".") - 1) >>> 0) + 2);
+      // Extract the file extension from the original filename
+      const originalFilename = file.originalname;
+      const fileExtension = originalFilename.slice(((originalFilename.lastIndexOf(".") - 1) >>> 0) + 2);
 
-        const filename = `${userid}_${timestamp}.${fileExtension}`;
-        cb(null, filename);
-      });
+      const filename = `${userid}_${timestamp}.${fileExtension}`;
+      cb(null, filename);
+     
     },
   });
   
@@ -53,9 +42,9 @@ const storage = multer.diskStorage({
         throw error;
       }
   
-      const username = req.body.username;
+      const userId = req.body.userId;
       const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
-      const filename = `${username}_${timestamp}`; // Fixing the filename
+      const filename = `${userId}_${timestamp}`; // Fixing the filename
   
       const generatedUuid = uuidv4();
   
@@ -65,7 +54,7 @@ const storage = multer.diskStorage({
         modified_file_name: file.filename,
         Status: 'Active',
         Created_on: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        Created_by: username,
+        Created_by: userId,
       };
   
       if (file.path) {

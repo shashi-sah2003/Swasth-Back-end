@@ -90,4 +90,3 @@ app.post('/verifyOTP', (req,res) =>{
 });
 
 module.exports = app;
-

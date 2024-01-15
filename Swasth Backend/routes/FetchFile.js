@@ -5,13 +5,13 @@ const db = require('../config/db');
 
 const app = express();
 
-app.get('/files/:username', async (req, res, next) => {
+app.get('/files/:userId', async (req, res, next) => {
     try {
-        const username = req.params.username;
+        const userId = req.params.userId;
 
         // Query record_files to get a list of files for the given username
         const fetchfile = 'SELECT original_file_name, modified_file_name FROM record_files WHERE Created_by = ?';
-        db.query(fetchfile, [username], async (err, result) => {
+        db.query(fetchfile, [userId], async (err, result) => {
             if (err) {
                 console.error(err);
                 return next(err);
@@ -36,14 +36,14 @@ app.get('/files/:username', async (req, res, next) => {
 
 
 
-app.get('/download/:username/:originalFilename', async (req, res, next) => {
+app.get('/download/:userId/:originalFilename', async (req, res, next) => {
     try {
-        const username = req.params.username;
+        const userId = req.params.userId;
         const originalFilename = req.params.originalFilename;
 
         // Query record_files to get the modified filename for the original filename
         const downloadfile = 'SELECT modified_file_name FROM record_files WHERE Created_by = ? AND original_file_name = ?';
-        db.query(downloadfile, [username, originalFilename], async (err, result) => {
+        db.query(downloadfile, [userId, originalFilename], async (err, result) => {
             if (err) {
                 console.error(err);
                 return next(err);
@@ -73,4 +73,3 @@ app.get('/download/:username/:originalFilename', async (req, res, next) => {
 
 
 module.exports = app;
-
