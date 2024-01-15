@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const register = require('../routes/login');
+const register = require('../routes/register');
 const login = require('../routes/login')
 const UploadFile = require('../routes/UploadFile');
 const FetchFile = require('../routes/FetchFile');
