@@ -14,21 +14,31 @@ app.use(bodyParser.json());
 
 //Registration Route
 app.post('/register',async (req,res) =>{
-    const {name, email, password, phoneNumber, dateOfBirth} = req.body;
+    const {name, phoneNumber, email, yearOfBirth, location, password} = req.body;
+    const Created_by = "webservice";
+    const Updated_by = "webservice";
+
+    // Check if location is provided
+    if (!location) {
+        return res.status(400).json({ error: "Location is required" });
+    }
+    
+    // Split the location string into latitude and longitude
+    const [latitude, longitude] = location.split(',').map(coord => coord.trim());
     console.log("data Received");
 
     //Hash the password before storing it
     const hashedPassword = await bcrypt.hash(password,10);
 
-    const register = 'INSERT INTO registration (name, email, password, phoneNumber, DateOfBirth) VALUES (?,?,?,?,?)';
-    db.query(register, [name, email, hashedPassword, phoneNumber, dateOfBirth],(err,result) =>{
+    const register = 'INSERT INTO user (name, phoneNumber, email, yearofBirth, password, latitude, longitude, Created_by, Updated_by) VALUES (?,?,?,?,?,?,?,?,?)';
+    db.query(register, [name, phoneNumber, email, yearOfBirth,hashedPassword, latitude, longitude, Created_by, Updated_by],(err,result) =>{
         if(err){
             console.error('Error registering user: ', err);
             return res.status(500).json({error: 'An error occured'});
         }
         else{
 
-            const fetchuserId = 'Select * from registration where email = ?';
+            const fetchuserId = 'Select * from user where email = ?';
             db.query(fetchuserId,[email], (err, result) => {
 
                 if(err){

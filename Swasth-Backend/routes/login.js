@@ -21,7 +21,7 @@ app.post('/login',async (req,res) =>{
 
     const {email, password} = req.body;
 
-    const sql = ' SELECT * from registration WHERE email = ?';
+    const sql = ' SELECT * from user WHERE email = ?';
     db.query(sql,[email], async(err,results) =>{
         if(err){
             console.error('Error while checking credentials: ',err);

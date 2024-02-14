@@ -1,8 +1,8 @@
 const express = require('express');
 const path = require('path');
-const db = require('../config/db');
+const db = require('../config/db'); // Ensure this is a promise-based MySQL connection
 const bodyParser = require('body-parser');
-const fs = require('fs');
+const fs = require('fs').promises; // Use promise-based fs module
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
@@ -10,64 +10,87 @@ const app = express();
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
+// Mapping all the recordType with an Id which corresponds to medical_record_type table
+// This appears to be unused in your provided code, consider how you want to use it
+const recordTypeMap = {
+    'Symptom': 1,
+    'Test_report': 2,
+    'Prescription': 3,
+    'Medicine': 4
+};
+
 app.post('/upload', async (req, res, next) => {
-  try {
-    const data = req.body;
+    try {
+        const { file, userId, DateTime, Description } = req.body;
 
-    // Ensure that the request has a file attached
-    if (!data.file) {
-      const error = new Error("Please upload a file");
-      error.statusCode = 400;
-      throw error;
+        // Ensure that the request has a file and necessary data
+        if (!file || !userId || !DateTime || !Description) {
+            return res.status(400).send({ error: "Missing required fields or file" });
+        }
+
+        // Assuming recordTypeMap translates recordType to a valid recordTypeId
+        const recordTypeId = 2;
+        if (!recordTypeId) {
+            return res.status(400).send({ error: "Invalid record type" });
+        }
+
+        // Generating filename and file path
+        const datetimestamp = DateTime;
+        const filename = `${userId}_${datetimestamp}`;
+
+        // Extract the file extension from the original filename
+        const originalFilename = file.originalname;
+        const fileExtension = originalFilename.slice(((originalFilename.lastIndexOf(".") - 1) >>> 0) + 2);
+        const destinationPath = path.join('/home/team_swasth/Swasth_FileUpload/File', `${filename}.${fileExtension}`);
+
+        // Decode the base64 data and write the file to disk
+        await fs.writeFile(destinationPath, Buffer.from(file.data, 'base64'));
+
+        // Inserting details into medical_record table first to get medicalRecordId
+        const insertMedicalRecordQuery = `
+      INSERT INTO medical_record (userId, recordTypeId, details, Created_on, Created_by) 
+      VALUES (?, ?, ?, ?, ?)
+    `;
+
+        const medicalRecordInsertResult = await db.query(insertMedicalRecordQuery, [userId, recordTypeId, Description, DateTime, userId]);
+
+        //fetching medicalrecordid from medical_record table
+
+        const medicalrecordid = 'Select medicalrecordid from medical_record where userid = ? and created_on =?';
+        db.query(medicalrecordid, [userId, DateTime, userId], async (err, results) => {
+            if (err) {
+                console.error("Unable to fetch medical record Id")
+            }
+
+            medicalRecordId = results[0].medicalrecordid;
+
+            // Now insert into record_files with the obtained medicalRecordId
+            const fileData = {
+                medicalrecordid: medicalRecordId, // Use medicalRecordId obtained from the previous insert
+                originalFileName: originalFilename,
+                modifiedFileName: `${filename}.${fileExtension}`,
+                fileLocation: destinationPath,
+                Created_on: DateTime,
+                Created_by: userId
+            };
+
+            const insertFileQuery = 'INSERT INTO record_files SET ?';
+            await db.query(insertFileQuery, fileData);
+
+            return res.send({ message: "File has been uploaded and data has been stored in the database." });
+        })
+
     }
-
-    
-    const file = data.file;
-    const userId = data.userId;
-    const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const filename = `${userId}_${timestamp}`;
-    const generatedUuid = uuidv4();
-    const desc = data.Description;
-    let fileData = {
-      Medical_record_id: generatedUuid,
-      original_file_name: file.originalname,
-      modified_file_name: filename,
-      Status: 'ACTIVE',
-      Created_on: data.DateTime,
-      Created_by: userId,
-      Description: desc
-    };
-    console.log(fileData);
-    // Extract the file extension from the original filename
-    const originalFilename = file.originalname;
-    const fileExtension = originalFilename.slice(((originalFilename.lastIndexOf(".") - 1) >>> 0) + 2);
-
-    const destinationPath = `/home/team_swasth/Swasth_FileUpload/File/${filename}.${fileExtension}`;
-
-    // Decode the base64 data and write the file to disk
-    const fileBuffer = Buffer.from(file.data, 'base64');
-    await fs.promises.writeFile(destinationPath, fileBuffer);
-
-    fileData.File_location = destinationPath;
-
-    const query = 'INSERT INTO record_files SET ?';
-    await db.query(query, fileData);
-
-    return res.send("File has been uploaded and data has been stored in the record_files table.");
-  } 
-  catch (error) {
-    console.error(error);
-    next(error);
-  }
+    catch (error) {
+        console.error(error);
+        return next(error);
+    }
 });
 
-  
-//   // Handle unhandled promise rejections
-  process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', reason.stack || reason);
-    // Handle the rejection here
-    process.exit(1); // Terminate the Node.js process with a non-zero exit code
-  });
-  
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1); // Or handle the rejection and keep the process alive as necessary
+});
 
 module.exports = app;

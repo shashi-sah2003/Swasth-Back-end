@@ -10,7 +10,7 @@ app.get('/files/:userId', async (req, res, next) => {
         const userId = req.params.userId;
 
         // Query record_files to get a list of files for the given username
-        const fetchfile = 'SELECT t1.original_file_name, t1.modified_file_name, t1.Created_on, t2.details FROM record_files t1 join medical_record t2 on t1.Created_by = t2.Created_by and t1.created_on = t2.created_on where t2.created_by = ?';
+        const fetchfile = 'SELECT t1.originalFileName, t1. modifiedFileName, t1.Created_on, t2.details FROM record_files t1 join medical_record t2 on t1.Created_by = t2.Created_by and t1.created_on = t2.created_on where t2.created_by = ?';
         db.query(fetchfile, [userId], async (err, result) => {
             if (err) {
                 console.error(err);
@@ -26,7 +26,7 @@ app.get('/files/:userId', async (req, res, next) => {
 
             // Return the list of files with only original filenames
             const files = result.map(file => ({
-		    "filename" : file.original_file_name, 
+		    "filename" : file.originalFileName, 
 		    "Created_on" : file.Created_on, 
 		    "Description" : file.details}));
 	    console.log(files);
@@ -49,7 +49,7 @@ app.get('/download/:userId/:originalFilename', async (req, res, next) => {
 
 
         // Query record_files to get the modified filename for the original filename
-        const downloadfile = 'SELECT modified_file_name FROM record_files WHERE Created_by = ? AND original_file_name = ?';
+        const downloadfile = 'SELECT modifiedFileName FROM record_files WHERE Created_by = ? AND originalFileName = ?';
         db.query(downloadfile, [userId, originalFilename], async (err, result) => {
             if (err) {
                 console.error(err);
@@ -60,11 +60,11 @@ app.get('/download/:userId/:originalFilename', async (req, res, next) => {
             //     return res.status(404).send('File not found in the database');
             // }
 
-            const modifiedFilename = result[0].modified_file_name;
+            const modifiedFilename = result[0].modifiedFileName;
             console.log(modifiedFilename);
-            const fileExtension = originalFilename.slice(((originalFilename.lastIndexOf(".") - 1) >>> 0) + 2);
             
-            const filePath = path.join("/home/team_swasth/Swasth_FileUpload/File", `${modifiedFilename}.${fileExtension}`);
+            const filePath = path.join("/home/team_swasth/Swasth_FileUpload/File", `${modifiedFilename}`);
+            console.log(filePath);
 
             // Check if the file exists
             if (fs.existsSync(filePath)) {
@@ -75,7 +75,8 @@ app.get('/download/:userId/:originalFilename', async (req, res, next) => {
                 return res.status(404).send('File not found');
             }
         });
-    } catch (error) {
+    } 
+    catch (error) {
         console.error(error);
         next(error);
     }
