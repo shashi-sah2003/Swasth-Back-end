@@ -29,14 +29,14 @@ app.post('/login',async (req,res) =>{
         }
 
         if(results.length === 0){
-            return res.status(401).json({error : 'Invalid credentials'});
+            return res.status(401).json({error : 'Not a registered user.'});
         }
 
         const user = results[0];
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if(!isPasswordValid){
-            return res.status(401).json({error : 'Invalid credentials'});
+            return res.status(402).json({error : 'Incorrect Password'});
         }
         
         //Generate a JWT token for authentication

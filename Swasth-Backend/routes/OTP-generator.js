@@ -1,8 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const otpGenerator = require('otp-generator');
+const jwt = require('jsonwebtoken');
+//const otpGenerator = require('otp-generator');
 const twilio = require('twilio');
-const db = require('../config/db')
+const crypto = require('crypto');
+const db = require('../config/db');
 
 const app = express();
 
@@ -16,77 +18,134 @@ app.use(bodyParser.json());
 
 
 app.post('/generateOTP', async (req, res) => {
-    const { phoneNumber } = req.body;
-    // Function to generate a random 4-digit OTP
-    function generateOTP() {
-      // Generate a random number between 1000 and 9999
-      return Math.floor(1000 + Math.random() * 9000).toString();
-    }
+  const { phonenumber } = req.body;
+  const phoneNumber = `+${phonenumber}`;
+  console.log(phoneNumber);
 
-    const otp = generateOTP();
-    //const otp = otpGenerator.generate(4, { chars: otpGenerator.NUMERIC, alphabets: false, upperCase: false, specialChars: false });
-  
-    try {
-      // Remove the '+' at the beginning if it's already present
-      const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber.replace(/\D/g, '')}`;
-  
-      // await client.messages.create({
-      //   body: `Your OTP is: ${otp}`,
-      //   from: twilioPhoneNumber,
-      //   to: formattedPhoneNumber,
-      // });
-  
+  const otp = crypto.randomInt(1000, 10000);
 
-      //Save OTP to the MySQL database
-      const insertOTP = "INSERT INTO otps (phoneNumber, otp) VALUES (?,?)";
-      db.query(insertOTP, [formattedPhoneNumber, otp], (err) =>{
+  try {
+    //Removing the '+' at the beginning if it's already present
+    //const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber.replace(/\D/g, '')}`;
 
-        if(err){
-          console.error("Error saving OTP to MySQL:", err);
-          return res.status(500).json({ success: false, error: 'Failed to save OTP' });
-        }
-      });
+    //Checking if phoneNumber has a corresponding userId in user table
+    const checkUser = "SELECT userId FROM user WHERE phoneNumber = ?";
+    db.query(checkUser, [phoneNumber], (err, userResult) => {
+      if (err) {
+        console.error("Error fetching User data: ", err);
+        return res.status(500).json({ success: false, error: "Error fetching user data" });
+      }
+      else if (userResult && userResult.length > 0) {
+        //User Found
 
-      
-      return res.json({ success: true, message: 'OTP sent successfully' });
-    } catch (error) {
-      console.error('Error sending OTP:', error);
-      return res.status(500).json({ success: false, error: 'Failed to send OTP' });
-    }
-  });
+        const userId = userResult[0].userId;
+
+        //Now checking if there is an existing OTP for the corresponding user
+        const checkExistingOTP = "SELECT * from otps WHERE userId = ?";
+        db.query(checkExistingOTP, [userId], (err, otpResults) => {
+          if (err) {
+            console.error("Error fetching data from otps table: ", err);
+            return res.status(500).json({ success: false, error: "Error fetching data from otps" });
+          }
+          else {
+            if (otpResults && otpResults.length > 0) {
+              //Existing OTP found, then update it
+
+              const UpdateOTP = "UPDATE otps SET otp = ? WHERE userId = ?";
+              db.query(UpdateOTP, [otp, userId], (err) => {
+                if (err) {
+                  console.error("Error updating the otps table: ", err);
+                  return res.status(500).json({ success: false, error: "Failed to update OTP" });
+                }
+                else {
+                  console.log("OTP updated successfully");
+                  return res.status(200).json({ success: true, message: "OTP updated successfully" });
+                }
+              });
+            }
+            else {
+              //No previously stored OTP then insert a new one for that userId corresponding to that phoneNumber
+              const insertOTP = "INSERT into otps (userId, otp) VALUES (?,?)";
+              db.query(insertOTP, [userId, otp], (err) => {
+                if (err) {
+                  console.error("Error saving OTP to MySQL:", err);
+                  return res.status(500).json({ success: false, error: 'Failed to save OTP' });
+                }
+                else {
+                  return res.status(200).json({ success: true, message: 'OTP saved successfully' });
+                }
+
+              });
+            }
+          }
+        });
+      }
+      else {
+        // No user found with the given phoneNumber
+        return res.status(404).json({ success: false, error: "No user found with the given phone number" });
+      }
+    });
+  }
+  catch (error) {
+    console.error("Server error: ", error);
+    return res.status(500).json({ success: false, error: "Internal Server Error" });
+  }
+});
+
 
 //Verifying and authenticating the OTP
-  
-app.get('/verifyOTP', (req, res) => {
-    res.send('This endpoint is for verification of OTP. Use a POST request.');
+
+app.post('/verifyOTP', (req, res) => {
+  const { phonenumber, otp } = req.body;
+  const phoneNumber = `+${phonenumber}`;
+
+  // First, find the userId associated with the phoneNumber
+  const getUser = 'SELECT userId, phoneNumber, email FROM user WHERE phoneNumber = ?';
+  db.query(getUser, [phoneNumber], (err, userResults) => {
+    if (err) {
+      console.error("Error fetching user data: ", err);
+      return res.status(500).json({ success: false, error: "Error fetching user data" });
+    } else if (userResults.length > 0) {
+      const userId = userResults[0].userId;
+      const phoneNumber = userResults[0].phoneNumber;
+      const email = userResults[0].email;
+
+      console.log(userId, phoneNumber, email);
+      // Now, retrieve the stored OTP using the userId
+      const getOTP = 'SELECT * FROM otps WHERE userId = ?';
+      db.query(getOTP, [userId], (err, results) => {
+        if (err) {
+          console.error("Error retrieving OTP from MySQL Server: ", err);
+          return res.status(500).json({ success: false, error: 'Failed to verify OTP' });
+        }
+
+        const storedOTP = results[0]?.otp;
+        // const otpTimestamp = results[0]?.timestamp;
+        // const currentTime = new Date();
+        // const otpTime = new Date(otpTimestamp);
+        // const timeDifference = (currentTime - otpTime) / 1000;
+
+        if (storedOTP && storedOTP === otp ) {
+          
+          // OTP verification successful, generate a token
+          const secretKey = crypto.randomBytes(32).toString('hex');
+          const token = jwt.sign({ userId: userId, phoneNumber: phoneNumber, email: email }, secretKey, { expiresIn: '1h' });
+
+          console.log(token);
+          return res.status(200).json({ success: true, message: 'OTP verification successful', token: token });
+        } 
+        //else if (timeDifference > 60) {
+        //   return res.status(400).json({ success: false, error: 'OTP is expired' });
+         //} 
+        else {
+          return res.status(400).json({ success: false, error: 'Invalid OTP' });
+        }
+      });
+    } else {
+      // No user found with the given phoneNumber
+      return res.status(404).json({ success: false, error: "No user found with the given phone number" });
+    }
   });
-
-app.post('/verifyOTP', (req,res) =>{
-
-    const { phoneNumber, otp} = req.body;
-    const formattedPhoneNumber = `+${phoneNumber}`; 
-
-    //Retrieving the stored OTP from the MySQL database based on latest timestamp
-    const getOTP  = 'SELECT * FROM otps WHERE phoneNumber = ? ORDER BY timestamp DESC LIMIT 1';
-    db.query(getOTP, [formattedPhoneNumber], (err, results) => {
-
-      if(err){
-        console.error("Error retrieving OTP from MySQL Server: ", err);
-        return res.status(500).json({ success: false, error: 'Failed to verify OTP' });
-      }
-
-      const storedOTP = results[0]?.otp; //(optional chaining)-->this allows user for error prevention as it returns value even it doesn't exist
-
-      if(storedOTP && storedOTP === otp){
-        return res.json({success: true, message: 'OTP verification successful'});
-      }
-      else{
-        return res.status(400).json({success: false, error: 'Invalid OTP'});
-      }
-
-      return;
-    });
-
 });
 
 module.exports = app;
