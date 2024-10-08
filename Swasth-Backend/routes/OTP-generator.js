@@ -11,10 +11,10 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// const accountSid = 'AC46f55908e64c252e164b8c753cee1301';
-// const authToken = 'aef843278076383f07c93add59de8f75';
+// const accountSid = '';
+// const authToken = '';
 // const client = new twilio(accountSid, authToken);
-// const twilioPhoneNumber = '+14695958945';
+// const twilioPhoneNumber = '';
 
 
 app.post('/generateOTP', async (req, res) => {
